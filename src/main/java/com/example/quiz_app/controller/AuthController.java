@@ -33,12 +33,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest loginRequest) { // Change here
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
         try {
             String token = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
             Map<String, String> response = new HashMap<>();
             response.put("token", token);
-            return ResponseEntity.ok(response); // Return token in response
+            return ResponseEntity.ok(response);
         } catch (IllegalStateException e) {
             Map<String, String> response = new HashMap<>();
             response.put("message", e.getMessage());

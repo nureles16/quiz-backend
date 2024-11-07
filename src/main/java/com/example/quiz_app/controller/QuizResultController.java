@@ -1,7 +1,6 @@
 package com.example.quiz_app.controller;
 
 import com.example.quiz_app.entity.QuizResult;
-import com.example.quiz_app.entity.User;
 import com.example.quiz_app.service.QuizResultService;
 import com.example.quiz_app.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +20,12 @@ public class QuizResultController {
     private final UserService userService;
 
     @PostMapping("/submit")
-    public ResponseEntity<QuizResult> submitQuizResult(@RequestBody QuizResult quizResult, @RequestParam Long userId) {
-        return userService.getUserById(userId).map(user -> {
-            quizResult.setUser(user); // Set the user object directly
+    public ResponseEntity<QuizResult> submitQuizResult(@RequestBody QuizResult quizResult) {
+        return userService.getUserById(quizResult.getUser().getId()).map(user -> {
+            quizResult.setUser(user);
             QuizResult savedResult = quizResultService.saveQuizResult(quizResult);
             return ResponseEntity.ok(savedResult);
-        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build()); // Return 404 if user not found
+        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @GetMapping("/user/{userId}")
@@ -34,6 +33,6 @@ public class QuizResultController {
         return userService.getUserById(userId).map(user -> {
             List<QuizResult> results = quizResultService.getResultsByUser(Optional.of(user));
             return ResponseEntity.ok(results);
-        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build()); // Return 404 if user not found
+        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 }

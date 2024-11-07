@@ -9,9 +9,7 @@ import java.util.Optional;
 
 public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
 
-    // Find quiz results by user
     List<QuizResult> findByUser(Optional<User> user);
 
-    // Find quiz results by quiz ID
     List<QuizResult> findByQuizId(Long quizId);
 }
