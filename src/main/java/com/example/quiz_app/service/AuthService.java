@@ -1,5 +1,6 @@
 package com.example.quiz_app.service;
 
+import com.example.quiz_app.dto.LoginResponse;
 import com.example.quiz_app.entity.User;
 import com.example.quiz_app.repository.UserRepository;
 import com.example.quiz_app.util.JwtUtil;
@@ -20,15 +21,17 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public String login(String username, String password) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("Invalid username or password"));
+    public LoginResponse login(String username, String password) {
+        User user = authenticateUser(username, password);
+        String token = jwtUtil.generateToken(username);
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new IllegalStateException("Invalid username or password"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new IllegalStateException("Invalid username or password");
         }
 
-        return jwtUtil.generateToken(username);
+        return new LoginResponse(token, user);
     }
 
     private User authenticateUser(String username, String password) {

@@ -1,6 +1,7 @@
 package com.example.quiz_app.controller;
 
 import com.example.quiz_app.dto.LoginRequest;
+import com.example.quiz_app.dto.LoginResponse;
 import com.example.quiz_app.entity.User;
 import com.example.quiz_app.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -33,16 +34,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
         try {
-            String token = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
-            Map<String, String> response = new HashMap<>();
-            response.put("token", token);
+            LoginResponse loginResponse = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", loginResponse.getToken());
+            response.put("user", loginResponse.getUser()); // Send user object along with token
             return ResponseEntity.ok(response);
         } catch (IllegalStateException e) {
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response); // Return Map<String, Object>
         }
     }
+
 }
