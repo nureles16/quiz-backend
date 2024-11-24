@@ -5,6 +5,7 @@ import com.example.quiz_app.entity.User;
 import com.example.quiz_app.repository.UserRepository;
 import com.example.quiz_app.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,16 +24,19 @@ public class AuthService {
 
     public LoginResponse login(String username, String password) {
         User user = authenticateUser(username, password);
-        String token = jwtUtil.generateToken(username);
-//        User user = userRepository.findByUsername(username)
-//                .orElseThrow(() -> new IllegalStateException("Invalid username or password"));
-
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalStateException("Invalid username or password");
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
+        String token = jwtUtil.generateToken(username);
+
+        if (jwtUtil.shouldRefreshToken(token)) {
+            token = jwtUtil.generateToken(username);  // Refresh token
         }
 
         return new LoginResponse(token, user);
     }
+
 
     private User authenticateUser(String username, String password) {
         Optional<User> userOptional = userRepository.findByUsername(username);

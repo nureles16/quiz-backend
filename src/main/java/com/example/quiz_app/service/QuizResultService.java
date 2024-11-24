@@ -23,7 +23,7 @@ public class QuizResultService {
         return quizResultRepository.findByUser(user);
     }
 
-    public List<QuizResult> getResultsByQuizId(Long quizId) {
-        return quizResultRepository.findByQuizId(quizId);
-    }
+//    public List<QuizResult> getResultsByQuizId(Long quizId) {
+//        return quizResultRepository.findByQuizId(quizId);
+//    }
 }

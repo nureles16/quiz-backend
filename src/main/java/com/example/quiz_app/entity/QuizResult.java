@@ -20,8 +20,8 @@ public class QuizResult {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private Long quizId;
+//    @Column(nullable = false)
+//    private Long quizId;
 
     @Column(nullable = false)
     private int score;

@@ -39,12 +39,12 @@ public class AuthController {
             LoginResponse loginResponse = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
             Map<String, Object> response = new HashMap<>();
             response.put("token", loginResponse.getToken());
-            response.put("user", loginResponse.getUser()); // Send user object along with token
+            response.put("user", loginResponse.getUser());
             return ResponseEntity.ok(response);
         } catch (IllegalStateException e) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response); // Return Map<String, Object>
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
 

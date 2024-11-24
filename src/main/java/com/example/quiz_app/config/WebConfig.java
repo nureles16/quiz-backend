@@ -15,10 +15,12 @@ public class WebConfig implements WebMvcConfigurer{
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOriginPatterns("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("Content-Type", "Authorization")
+                        .allowedOrigins("http://localhost:4200")
+                        .allowedHeaders("Authorization", "Content-Type")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .exposedHeaders("Authorization")
                         .allowCredentials(true)
-                        .maxAge(3600); // Cache preflight response for 1 hour
+                        .maxAge(3600);
             }
         };
     }
