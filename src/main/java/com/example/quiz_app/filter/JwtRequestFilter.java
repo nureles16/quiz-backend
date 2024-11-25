@@ -30,7 +30,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 String username = jwtUtil.extractUsername(token);
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    // Validate token and refresh if necessary
                     if (!jwtUtil.isTokenValid(token, username)) {
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         response.getWriter().write("Invalid or expired token");

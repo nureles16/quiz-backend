@@ -22,7 +22,7 @@ public class QuizResultService {
         return quizResultRepository.save(quizResult);
     }
 
-    public List<QuizResult> getResultsByUser(Optional<User> user) {
+    public List<QuizResult> getResultsByUser(User user) {
         return quizResultRepository.findByUser(user);
     }
 }

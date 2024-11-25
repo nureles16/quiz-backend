@@ -31,7 +31,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(username);
 
         if (jwtUtil.shouldRefreshToken(token)) {
-            token = jwtUtil.generateToken(username);  // Refresh token
+            token = jwtUtil.generateToken(username);
         }
 
         return new LoginResponse(token, user);

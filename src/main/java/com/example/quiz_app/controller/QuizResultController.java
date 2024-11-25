@@ -11,7 +11,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/quiz-results")
@@ -22,18 +21,27 @@ public class QuizResultController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
+    private String validateTokenAndGetUsername(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            System.out.println("Invalid authorization header");
+            return null;
+        }
+        String token = authorizationHeader.substring(7);
+        String username = jwtUtil.extractUsername(token);
+        if (!jwtUtil.isTokenValid(token, username)) {
+            System.out.println("Invalid or expired token");
+            SecurityContextHolder.clearContext();
+            return null;
+        }
+        return username;
+    }
+
+
     @PostMapping("/submit")
     public ResponseEntity<QuizResult> submitQuizResult(@RequestBody QuizResult quizResult,
                                                        @RequestHeader("Authorization") String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
-
-        String token = authorizationHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
-
-        if (!jwtUtil.isTokenValid(token, username)) {
-            SecurityContextHolder.clearContext();
+        String username = validateTokenAndGetUsername(authorizationHeader);
+        if (username == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -48,11 +56,21 @@ public class QuizResultController {
         }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<QuizResult>> getQuizResultsByUser(@PathVariable Long userId) {
-        return userService.getUserById(userId).map(user -> {
-            List<QuizResult> results = quizResultService.getResultsByUser(Optional.of(user));
-            return ResponseEntity.ok(results);
+    @GetMapping("/user-results")
+    public ResponseEntity<List<QuizResult>> getResultsByUser(@RequestHeader("Authorization") String authorizationHeader) {
+        String username = validateTokenAndGetUsername(authorizationHeader);
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return (ResponseEntity<List<QuizResult>>) userService.getUserByUsername(username).map(user -> {
+            List<QuizResult> results = quizResultService.getResultsByUser(user);
+            if (results.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            } else {
+                return ResponseEntity.ok(results);
+            }
         }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+
 }

@@ -30,7 +30,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeRequests(authz -> authz
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers("/api/quiz-results/submit").permitAll()
+                        .requestMatchers("/api/quiz-results/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
