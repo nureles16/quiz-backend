@@ -16,14 +16,13 @@ public class QuizResultService {
     private final QuizResultRepository quizResultRepository;
 
     public QuizResult saveQuizResult(QuizResult quizResult) {
+        if (quizResult.getTitle() == null || quizResult.getSubject() == null) {
+            throw new IllegalArgumentException("QuizResult must include a title and subject.");
+        }
         return quizResultRepository.save(quizResult);
     }
 
     public List<QuizResult> getResultsByUser(Optional<User> user) {
         return quizResultRepository.findByUser(user);
     }
-
-//    public List<QuizResult> getResultsByQuizId(Long quizId) {
-//        return quizResultRepository.findByQuizId(quizId);
-//    }
 }

@@ -37,6 +37,10 @@ public class QuizResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        if (quizResult.getTitle() == null || quizResult.getSubject() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
         return userService.getUserByUsername(username).map(user -> {
             quizResult.setUser(user);
             QuizResult savedResult = quizResultService.saveQuizResult(quizResult);
