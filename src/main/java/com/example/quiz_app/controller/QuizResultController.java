@@ -4,6 +4,7 @@ import com.example.quiz_app.entity.QuizResult;
 import com.example.quiz_app.service.QuizResultService;
 import com.example.quiz_app.service.UserService;
 import com.example.quiz_app.util.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,14 +64,34 @@ public class QuizResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return (ResponseEntity<List<QuizResult>>) userService.getUserByUsername(username).map(user -> {
-            List<QuizResult> results = quizResultService.getResultsByUser(user);
-            if (results.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            } else {
-                return ResponseEntity.ok(results);
-            }
-        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        return userService.getUserByUsername(username)
+                .map(user -> {
+                    List<QuizResult> results = quizResultService.getResultsByUser(user);
+                    return results.isEmpty()
+                            ? ResponseEntity.noContent().<List<QuizResult>>build()
+                            : ResponseEntity.ok(results);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+
     }
 
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> deleteQuizResult(@PathVariable Long id,
+                                                   @RequestHeader("Authorization") String authorizationHeader) {
+        String username = validateTokenAndGetUsername(authorizationHeader);
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return userService.getUserByUsername(username).map(user -> {
+            QuizResult quizResult = quizResultService.getResultsByUser(user).stream()
+                    .filter(result -> result.getId().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new EntityNotFoundException("QuizResult not found or does not belong to the user."));
+
+            quizResultService.deleteQuizResult(id);
+            return ResponseEntity.noContent().build();
+        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
 }

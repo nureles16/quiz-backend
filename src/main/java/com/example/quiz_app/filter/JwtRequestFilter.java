@@ -36,7 +36,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                         return;
                     }
 
-                    if (!request.getRequestURI().contains("/api/quiz-results/submit")) {
+                    if (!request.getRequestURI().contains("/api/quiz-results")) {
                         if (jwtUtil.shouldRefreshToken(token)) {
                             String refreshedToken = jwtUtil.generateToken(username);
                             response.setHeader("Authorization", "Bearer " + refreshedToken);

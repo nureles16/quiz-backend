@@ -3,11 +3,11 @@ package com.example.quiz_app.service;
 import com.example.quiz_app.entity.QuizResult;
 import com.example.quiz_app.entity.User;
 import com.example.quiz_app.repository.QuizResultRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,5 +24,12 @@ public class QuizResultService {
 
     public List<QuizResult> getResultsByUser(User user) {
         return quizResultRepository.findByUser(user);
+    }
+
+    public void deleteQuizResult(Long id) {
+        if (!quizResultRepository.existsById(id)) {
+            throw new EntityNotFoundException("QuizResult with ID " + id + " not found.");
+        }
+        quizResultRepository.deleteById(id);
     }
 }
