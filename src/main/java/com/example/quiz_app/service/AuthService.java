@@ -1,6 +1,9 @@
 package com.example.quiz_app.service;
 
+import com.example.quiz_app.dto.RegisterResponse;
+import com.example.quiz_app.dto.LoginRequest;
 import com.example.quiz_app.dto.LoginResponse;
+import com.example.quiz_app.dto.RegisterRequest;
 import com.example.quiz_app.entity.User;
 import com.example.quiz_app.repository.UserRepository;
 import com.example.quiz_app.util.JwtUtil;
@@ -8,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
 
 @Service
 @RequiredArgsConstructor
@@ -18,29 +20,41 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public LoginResponse login(String username, String password) {
-        User user = userRepository.findByUsername(username)
+    public LoginResponse login(LoginRequest loginRequest) {
+        User user = userRepository.findByUsername(loginRequest.getUsername())
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Invalid username or password");
         }
 
-        String token = jwtUtil.generateToken(username);
+        String token = jwtUtil.generateToken(user.getUsername());
 
-        return new LoginResponse(token, user);
+        return LoginResponse.builder()
+                .token(token)
+                .user(user)
+                .build();
     }
 
-    public User registerUser(User user) {
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+    public RegisterResponse register(RegisterRequest registerRequest) {
+        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
             throw new IllegalStateException("Username is already taken");
         }
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
             throw new IllegalStateException("Email is already registered");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setName(registerRequest.getName());
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        userRepository.save(user);
 
-        return userRepository.save(user);
+        String token = jwtUtil.generateToken(user.getUsername());
+
+        return RegisterResponse.builder()
+                .token(token)
+                .build();
     }
 }

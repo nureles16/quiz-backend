@@ -1,12 +1,14 @@
 package com.example.quiz_app.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
+@Builder
 @AllArgsConstructor
-public class AuthResponse {
+@NoArgsConstructor
+public class RegisterResponse {
     private String token;
 }
