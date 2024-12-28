@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/quiz-results")
+@RequestMapping("/quiz-results")
 @RequiredArgsConstructor
 public class QuizResultController {
 

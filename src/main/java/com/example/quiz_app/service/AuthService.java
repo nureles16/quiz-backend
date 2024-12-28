@@ -4,6 +4,7 @@ import com.example.quiz_app.dto.RegisterResponse;
 import com.example.quiz_app.dto.LoginRequest;
 import com.example.quiz_app.dto.LoginResponse;
 import com.example.quiz_app.dto.RegisterRequest;
+import com.example.quiz_app.entity.Role;
 import com.example.quiz_app.entity.User;
 import com.example.quiz_app.repository.UserRepository;
 import com.example.quiz_app.util.JwtUtil;
@@ -19,6 +20,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final UserService userService;
 
     public LoginResponse login(LoginRequest loginRequest) {
         User user = userRepository.findByUsername(loginRequest.getUsername())
@@ -49,7 +51,8 @@ public class AuthService {
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        userRepository.save(user);
+        user.setRole(Role.USER);
+        userService.createUser(user);
 
         String token = jwtUtil.generateToken(user.getUsername());
 
