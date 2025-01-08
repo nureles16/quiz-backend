@@ -4,7 +4,7 @@ import com.example.quiz_app.entity.QuizResult;
 import com.example.quiz_app.service.QuizResultService;
 import com.example.quiz_app.service.UserService;
 import com.example.quiz_app.util.JwtUtil;
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +39,7 @@ public class QuizResultController {
 
 
     @PostMapping("/submit")
-    public ResponseEntity<QuizResult> submitQuizResult(@RequestBody QuizResult quizResult,
+    public ResponseEntity<QuizResult> submitQuizResult(@Valid @RequestBody QuizResult quizResult,
                                                        @RequestHeader("Authorization") String authorizationHeader) {
         String username = validateTokenAndGetUsername(authorizationHeader);
         if (username == null) {
@@ -84,14 +84,12 @@ public class QuizResultController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return userService.getUserByUsername(username).map(user -> {
-            QuizResult quizResult = quizResultService.getResultsByUser(user).stream()
-                    .filter(result -> result.getId().equals(id))
-                    .findFirst()
-                    .orElseThrow(() -> new EntityNotFoundException("QuizResult not found or does not belong to the user."));
-
-            quizResultService.deleteQuizResult(id);
-            return ResponseEntity.noContent().build();
-        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        return userService.getUserByUsername(username).flatMap(user ->
+                quizResultService.getQuizResultByIdAndUser(id, user)
+                        .map(result -> {
+                            quizResultService.deleteQuizResult(id);
+                            return ResponseEntity.noContent().build();
+                        })
+        ).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 }
