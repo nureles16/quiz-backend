@@ -1,6 +1,8 @@
 package com.example.quiz_app.controller;
 
+import com.example.quiz_app.dto.QuizResultDto;
 import com.example.quiz_app.entity.QuizResult;
+import com.example.quiz_app.entity.User;
 import com.example.quiz_app.service.QuizResultService;
 import com.example.quiz_app.service.UserService;
 import com.example.quiz_app.util.JwtUtil;
@@ -10,8 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/quiz-results")
@@ -22,74 +28,107 @@ public class QuizResultController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    private String validateTokenAndGetUsername(String authorizationHeader) {
+    private Optional<User> getUserFromToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            System.out.println("Invalid authorization header");
-            return null;
+            return Optional.empty();
         }
         String token = authorizationHeader.substring(7);
         String username = jwtUtil.extractUsername(token);
         if (!jwtUtil.isTokenValid(token, username)) {
-            System.out.println("Invalid or expired token");
             SecurityContextHolder.clearContext();
-            return null;
+            return Optional.empty();
         }
-        return username;
+        return userService.getUserByUsername(username);
     }
 
-
     @PostMapping("/submit")
-    public ResponseEntity<QuizResult> submitQuizResult(@Valid @RequestBody QuizResult quizResult,
+    public ResponseEntity<QuizResultDto> submitQuizResult(@Valid @RequestBody QuizResultDto quizResultDto,
                                                        @RequestHeader("Authorization") String authorizationHeader) {
-        String username = validateTokenAndGetUsername(authorizationHeader);
-        if (username == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        return getUserFromToken(authorizationHeader)
+                .map(user -> {
+                    QuizResult quizResult = new QuizResult(
+                            null, user.getId(), user.getUsername(), quizResultDto.getTitle(), quizResultDto.getSubject(),
+                            quizResultDto.getScore(), quizResultDto.getTotalQuestions(), quizResultDto.getUserAnswers(),
+                            quizResultDto.getCorrectAnswers(), LocalDateTime.now()
+                    );
 
-        if (quizResult.getTitle() == null || quizResult.getSubject() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
-
-        return userService.getUserByUsername(username).map(user -> {
-            quizResult.setUser(user);
-            QuizResult savedResult = quizResultService.saveQuizResult(quizResult);
-            return ResponseEntity.ok(savedResult);
-        }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+                    QuizResult savedResult = quizResultService.saveQuizResult(quizResult);
+                    return ResponseEntity.ok(mapToDto(savedResult));
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
     @GetMapping("/user-results")
-    public ResponseEntity<List<QuizResult>> getResultsByUser(@RequestHeader("Authorization") String authorizationHeader) {
-        String username = validateTokenAndGetUsername(authorizationHeader);
-        if (username == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        return userService.getUserByUsername(username)
+    public ResponseEntity<List<QuizResultDto>> getResultsByUser(@RequestHeader("Authorization") String authorizationHeader) {
+        return getUserFromToken(authorizationHeader)
                 .map(user -> {
-                    List<QuizResult> results = quizResultService.getResultsByUser(user);
+                    List<QuizResultDto> results = quizResultService.getResultsByUser(user.getId());
                     return results.isEmpty()
-                            ? ResponseEntity.noContent().<List<QuizResult>>build()
+                            ? ResponseEntity.noContent().<List<QuizResultDto>>build()
                             : ResponseEntity.ok(results);
                 })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
-
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> deleteQuizResult(@PathVariable Long id,
                                                    @RequestHeader("Authorization") String authorizationHeader) {
-        String username = validateTokenAndGetUsername(authorizationHeader);
-        if (username == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        return getUserFromToken(authorizationHeader)
+                .map(user -> {
+                    QuizResultDto quizResult = quizResultService.getQuizResultByIdAndUser(id, user.getId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "QuizResult not found"));
 
-        return userService.getUserByUsername(username).flatMap(user ->
-                quizResultService.getQuizResultByIdAndUser(id, user)
-                        .map(result -> {
-                            quizResultService.deleteQuizResult(id);
-                            return ResponseEntity.noContent().build();
-                        })
-        ).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+                    quizResultService.deleteQuizResult(id);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+
+    @GetMapping("/{id}/feedback")
+    public ResponseEntity<Map<String, Map<String, String>>> getQuizFeedback(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        return getUserFromToken(authorizationHeader)
+                .flatMap(user -> quizResultService.getQuizResultByIdAndUser(id, user.getId()))
+                .map(quizResult -> {
+                    Map<String, Map<String, String>> feedback = Map.of(
+                            "userAnswers", quizResult.getUserAnswers(),
+                            "correctAnswers", quizResult.getCorrectAnswers()
+                    );
+                    return ResponseEntity.ok(feedback);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @GetMapping("/user-results/{id}")
+    public ResponseEntity<List<QuizResultDto>> getResultsByQuizId(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        return getUserFromToken(authorizationHeader)
+                .map(user -> {
+                    List<QuizResultDto> results = quizResultService.getResultsByQuizId(id);
+                    return results.isEmpty()
+                            ? ResponseEntity.noContent().<List<QuizResultDto>>build()
+                            : ResponseEntity.ok(results);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+
+    private QuizResultDto mapToDto(QuizResult result) {
+        return new QuizResultDto(
+                result.getId(),
+                result.getUserId(),
+                result.getUsername(),
+                result.getTitle(),
+                result.getSubject(),
+                result.getScore(),
+                result.getTotalQuestions(),
+                result.getUserAnswers(),
+                result.getCorrectAnswers(),
+                result.getCompletedAt()
+        );
     }
 }
